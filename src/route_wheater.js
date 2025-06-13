@@ -6,34 +6,51 @@ const searcWheater = require('./service_weather')
 const apiKey = process.env.API_KEY
 console.log(apiKey)
 
-router.get('/washington', async (req, res) =>{
+router.get('/:city', async (req, res) =>{
     // const city = req.params.city
     // const city = 'washington'
     // const cacheK = `wheater: ${city}`
-    const city = 'washington'
-    const cacheK = `wheater:washigton`
+    const city = req.params.city.toLowerCase()
+    const cacheK = `wheater:${city}`
 
     try {
         const cached = await redisClient.get(cacheK)
 
-        const parsed = JSON.parse(cached)
-        const climaPars = parsed.currentConditions
-
-        const fahrenheit = climaPars.temp
-        const celsius = ((fahrenheit - 32) * 5 / 9).toFixed(1)
 
 
         if (cached) {
             // return res.json({ source: 'cache', data: JSON.parse(cached) })
 
+            const parsed = JSON.parse(cached)
+            const climaPars = parsed.currentConditions
+
+            const fahrenheit = climaPars.temp
+            const celsius = ((fahrenheit - 32) * 5 / 9).toFixed(1)
+
+            const nomeCEP = parsed.resolvedAddress || ''
+            const nomeCidade = parsed.resolvedAddress.split(',')[0]
+
+            if (!nomeCEP.includes('United States')) {
+                return res.status(400).send(`
+                    <html>
+                        <head>
+                            <title>erro</title>
+                        </head>
+                        <body>
+                            <h1>erro</h1>
+                            <h2>pesquise apenas cidades dos EUA</h2>
+                        </body>
+                    </html>
+                `)
+            }
 
             return res.send(`
             <html>
                 <head>
-                    <title>Clima de Washington</title>
+                    <title>Clima de ${nomeCidade}</title>
                 </head>
                 <body>
-                    <h1>Você buscou o clima de Washington</h1>
+                    <h1>Você buscou o clima de ${nomeCEP}</h1>
                     <h2>temperatura: ${celsius}°C</h2>
                 </body>
             </html>    
@@ -49,19 +66,39 @@ router.get('/washington', async (req, res) =>{
         
 
         const clima = weater.currentConditions
+        const fahrenheit = clima.temp
+        const celsius = ((fahrenheit - 32) * 5 / 9).toFixed(1)
 
+        const nomeCEP = weater.resolvedAddress || ''
+        const nomeCidade = weater.resolvedAddress.split(',')[0]
 
         //RETORNA O JSON COM AS INFORMAÇÕES DE CLIMA
         // res.json({ source: 'api', data: weater })
 
+        if (!nomeCEP.includes('United States')) {
+            return res.status(400).send(`
+            <html>
+                <head>
+                    <title>erro</title>
+                </head>
+                <body>
+                    <h1>erro</h1>
+                    <h2>pesquise apenas cidades dos EUA</h2>
+                </body>
+            </html>
+            `)
+        }
+        
+
+        // optei por não deixar o "°C" abaixo para ver se o cache é salvo
          res.send(`
             <html>
                 <head>
-                    <title>Clima de Washington</title>
+                    <title>Clima de ${nomeCidade}</title>
                 </head>
                 <body>
-                    <h1>Você buscou o clima de Washington</h1>
-                    <h2>temperatura: ${clima.temp}</h2>
+                    <h1>Você buscou o clima de ${nomeCEP}</h1>
+                    <h2>temperatura: ${celsius}</h2>
                 </body>
             </html>    
             `)
